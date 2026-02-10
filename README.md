@@ -1,0 +1,1 @@
+Gerenciaento de escalas
