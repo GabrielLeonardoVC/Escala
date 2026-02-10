@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de escala</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --blue: #1e3a8a; --gold: #d4af37; --red: #991b1b;
+            --bg: #f8fafc; --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg); color: #333; }
+
+        /* Navegação */
+        nav {
+            background: var(--blue);
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 3px solid var(--gold);
+        }
+
+        nav button {
+            background: transparent; border: none; color: white;
+            font-weight: 600; cursor: pointer; padding: 5px 10px;
+            display: flex; align-items: center; gap: 8px;
+            transition: 0.3s;
+        }
+
+        nav button:hover, nav button.active { color: var(--gold); transform: translateY(-2px); }
+
+        .page { display: none; padding: 20px; max-width: 800px; margin: auto; animation: fadeIn 0.4s; }
+        .page.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        header { text-align: center; padding: 40px 20px; background: white; margin-bottom: 20px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        header h1 { font-family: 'Cinzel', serif; color: var(--blue); }
+
+        /* Cards e Estilos */
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .grid-calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
+        .dia { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+        .dia.tem-escala { background: var(--blue); color: white; font-weight: bold; }
+        .dia.selecionado { border: 3px solid var(--gold); }
+
+        /* Inputs */
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .btn-acao { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
+        
+        /* Lista de Músicas na Visualização */
+        .escala-item { border-left: 5px solid var(--gold); padding: 15px; margin-bottom: 20px; position: relative; }
+        .musica-linha { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+        .yt-link { color: var(--red); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+
+        .btn-excluir { background: #fee2e2; color: var(--red); border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; float: right; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <button onclick="showPage('home')" id="btn-home"><i data-lucide="home"></i> Início</button>
+    <button onclick="showPage('admin')" id="btn-admin"><i data-lucide="calendar-plus"></i> Montar</button>
+    <button onclick="showPage('view')" id="btn-view"><i data-lucide="list-music"></i> Ver Escalas</button>
+</nav>
+
+<div id="home" class="page active">
+    <header>
+        <h1>Sistema de escala</h1>
+        <p>Maior organização em suas escalas</p>
+    </header>
+    <div class="card" id="proximo-evento">
+        <h2>Próxima Escala</h2>
+        <div id="resumo-home">Nenhuma escala cadastrada para os próximos dias.</div>
+    </div>
+</div>
+
+<div id="admin" class="page">
+    <div class="card">
+        <h2>1. Selecione o Dia</h2>
+        <div class="grid-calendario" id="gridAdmin"></div>
+    </div>
+
+    <div id="form-musicas" class="card" style="display: none;">
+        <h2 id="data-titulo">Montar Repertório</h2>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="m-nome" placeholder="Nome da música">
+            <input type="text" id="m-yt" placeholder="Link YouTube" style="width: 150px;">
+        </div>
+        <button class="btn-acao" onclick="adicionarMusica()" style="background: var(--gold);">+ Adicionar Música na Ordem</button>
+        
+        <div id="lista-previa" style="margin-top: 20px;"></div>
+        
+        <button class="btn-acao" onclick="salvarTudo()" style="display: none;" id="btn-salvar-final">
+            <i data-lucide="save"></i> FINALIZAR E SALVAR ESCALA
+        </button>
+    </div>
+</div>
+
+<div id="view" class="page">
+    <header>
+        <h2>Escalas Agendadas</h2>
+        <p>Confira abaixo o repertório de cada dia</p>
+    </header>
+    <div id="lista-escalas-completa"></div>
+</div>
+
+<script>
+    let escalas = JSON.parse(localStorage.getItem('dm_escalas')) || {};
+    let musicasTemporarias = [];
+    let dataSelecionada = "";
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.getElementById('btn-' + pageId).classList.add('active');
+        
+        if(pageId === 'view') carregarEscalasPaginaView();
+        if(pageId === 'home') carregarHome();
+    }
+
+    function renderCalendarioAdmin() {
+        const grid = document.getElementById('gridAdmin');
+        grid.innerHTML = '';
+        for(let i=1; i<=28; i++) { // Simplificado Fev
+            const d = `2026-02-${i.toString().padStart(2, '0')}`;
+            const classe = escalas[d] ? 'dia tem-escala' : 'dia';
+            grid.innerHTML += `<div class="${classe}" id="dia-${d}" onclick="prepararDia('${d}')">${i}</div>`;
+        }
+    }
+
+    function prepararDia(d) {
+        dataSelecionada = d;
+        document.querySelectorAll('.dia').forEach(el => el.classList.remove('selecionado'));
+        document.getElementById('dia-'+d).classList.add('selecionado');
+        document.getElementById('form-musicas').style.display = 'block';
+        document.getElementById('data-titulo').innerText = "Repertório: " + d.split('-').reverse().join('/');
+        musicasTemporarias = escalas[d] || [];
+        atualizarListaPrevia();
+    }
+
+    function adicionarMusica() {
+        const nome = document.getElementById('m-nome').value;
+        const yt = document.getElementById('m-yt').value;
+        if(!nome) return alert("Digite o nome da música");
+        
+        musicasTemporarias.push({ nome, yt });
+        document.getElementById('m-nome').value = "";
+        document.getElementById('m-yt').value = "";
+        atualizarListaPrevia();
+    }
+
+    function atualizarListaPrevia() {
+        const lista = document.getElementById('lista-previa');
+        lista.innerHTML = musicasTemporarias.map((m, i) => `
+            <div class="musica-linha">
+                <span><strong>${i+1}.</strong> ${m.nome}</span>
+                <button onclick="musicasTemporarias.splice(${i},1); atualizarListaPrevia()" style="color:red; border:none; background:none; cursor:pointer">Remover</button>
+            </div>
+        `).join('');
+        document.getElementById('btn-salvar-final').style.display = musicasTemporarias.length > 0 ? 'block' : 'none';
+    }
+
+    function salvarTudo() {
+        escalas[dataSelecionada] = musicasTemporarias;
+        localStorage.setItem('dm_escalas', JSON.stringify(escalas));
+        alert("Escala salva com sucesso! Vá na aba 'Ver Escalas' para conferir.");
+        renderCalendarioAdmin();
+        showPage('view');
+    }
+
+    function carregarEscalasPaginaView() {
+        const container = document.getElementById('lista-escalas-completa');
+        const datas = Object.keys(escalas).sort();
+        
+        if(datas.length === 0) {
+            container.innerHTML = "<p style='text-align:center'>Nenhuma escala salva ainda.</p>";
+            return;
+        }
+
+        container.innerHTML = datas.map(d => `
+            <div class="card escala-item">
+                <button class="btn-excluir" onclick="excluirEscala('${d}')"><i data-lucide="trash"></i></button>
+                <h3 style="color:var(--blue)">📅 Dia ${d.split('-').reverse().join('/')}</h3>
+                <div style="margin-top:10px">
+                    ${escalas[d].map((m, i) => `
+                        <div class="musica-linha">
+                            <span>${i+1}. ${m.name || m.nome}</span>
+                            ${m.yt ? `<a href="${m.yt}" target="_blank" class="yt-link">PLAY YOUTUBE</a>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function excluirEscala(d) {
+        if(confirm("Excluir esta escala?")) {
+            delete escalas[d];
+            localStorage.setItem('dm_escalas', JSON.stringify(escalas));
+            carregarEscalasPaginaView();
+            renderCalendarioAdmin();
+        }
+    }
+
+    function carregarHome() {
+        const datas = Object.keys(escalas).sort();
+        const resumo = document.getElementById('resumo-home');
+        if(datas.length > 0) {
+            const prox = datas[0];
+            resumo.innerHTML = `
+                <p><strong>Data:</strong> ${prox.split('-').reverse().join('/')}</p>
+                <p><strong>Músicas:</strong> ${escalas[prox].length} canções escaladas.</p>
+                <button class="btn-acao" onclick="showPage('view')">Ver Detalhes</button>
+            `;
+        }
+    }
+
+    renderCalendarioAdmin();
+    lucide.createIcons();
+</script>
+
+</body>
+</html>
