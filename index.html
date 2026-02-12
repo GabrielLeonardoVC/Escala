@@ -27,7 +27,6 @@
             z-index: 5000; flex-direction: column; align-items: center; justify-content: center;
             padding: 30px; text-align: center;
         }
-        #error-overlay i { color: var(--error); margin-bottom: 20px; }
 
         /* NAVEGAÇÃO */
         nav {
@@ -53,10 +52,15 @@
         @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         h1 { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; margin: 30px 0 10px; }
-        
-        /* CALENDÁRIO COM DIAS DA SEMANA */
+
+        /* HEADER DO CALENDÁRIO COM NAVEGAÇÃO */
+        .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .cal-nav h2 { font-size: 18px; font-weight: 700; text-transform: capitalize; }
+        .cal-nav button { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 10px; cursor: pointer; }
+
         .cal-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 10px; }
         .cal-header span { font-size: 10px; font-weight: 800; color: var(--text-light); text-transform: uppercase; }
+        
         .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 25px; }
         .dia { 
             aspect-ratio: 1; display: flex; align-items: center; justify-content: center; 
@@ -107,7 +111,7 @@
 <body>
 
 <div id="error-overlay">
-    <i data-lucide="shield-alert" style="width: 64px; height: 64px;"></i>
+    <i data-lucide="shield-alert" style="width: 64px; height: 64px; color: var(--error)"></i>
     <h2 style="margin: 15px 0">Link Inválido</h2>
     <p id="error-desc" style="color: var(--text-light); margin-bottom: 25px;"></p>
     <button class="btn-primary" onclick="closeError()">Entendi e Vou Corrigir</button>
@@ -121,12 +125,19 @@
         <p style="color: var(--text-light); margin-bottom: 30px;">O que vamos tocar hoje?</p>
         <div class="card" onclick="showPage('admin')" style="cursor: pointer; border-left: 5px solid var(--primary);">
             <h3 style="font-size:16px">Montar Repertório</h3>
-            <p style="font-size:13px; color:var(--text-light)">Toque para escolher a data.</p>
+            <p style="font-size:13px; color:var(--text-light)">Selecione uma data no calendário.</p>
         </div>
     </div>
 
     <div id="admin" class="page">
-        <h1 id="mes-atual">Fevereiro 2026</h1>
+        <h1>Calendário</h1>
+        
+        <div class="cal-nav">
+            <button onclick="mudarMes(-1)"><i data-lucide="chevron-left"></i></button>
+            <h2 id="mes-label">Janeiro 2024</h2>
+            <button onclick="mudarMes(1)"><i data-lucide="chevron-right"></i></button>
+        </div>
+
         <div class="cal-header">
             <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
         </div>
@@ -182,12 +193,10 @@
 </nav>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('m_divina_v9')) || {};
+    // Inicialização da Data
+    let dataReferencia = new Date();
+    let db = JSON.parse(localStorage.getItem('m_divina_v10')) || {};
     let temp = []; let selDate = ""; let photo = ""; let editId = null;
-
-    // Configuração do calendário atual (Fevereiro 2026)
-    const ANO_ATUAL = 2026;
-    const MES_ATUAL = 1; // 0=Jan, 1=Fev...
 
     function toggleTheme() {
         document.body.classList.toggle('dark-mode');
@@ -198,7 +207,12 @@
 
     function openLink(url) {
         if (!url) return;
-        window.open(url, '_blank');
+        if (url.startsWith('http')) {
+            window.open(url, '_blank');
+        } else {
+            document.getElementById('error-desc').innerHTML = `O link <b>"${url}"</b> não é válido.<br>Use <b>https://</b> no início.`;
+            document.getElementById('error-overlay').style.display = 'flex';
+        }
     }
 
     function closeError() { document.getElementById('error-overlay').style.display = 'none'; }
@@ -211,31 +225,50 @@
         if(p === 'view') renderList();
     }
 
+    // NAVEGAÇÃO DO CALENDÁRIO
+    function mudarMes(direcao) {
+        dataReferencia.setMonth(dataReferencia.getMonth() + direcao);
+        renderCal();
+    }
+
     function renderCal() {
         const grid = document.getElementById('calAdmin');
+        const label = document.getElementById('mes-label');
         grid.innerHTML = '';
         
-        // Primeiro dia do mês e total de dias
-        const primeiroDiaSemana = new Date(ANO_ATUAL, MES_ATUAL, 1).getDay();
-        const diasNoMes = new Date(ANO_ATUAL, MES_ATUAL + 1, 0).getDate();
+        const ano = dataReferencia.getFullYear();
+        const mes = dataReferencia.getMonth();
 
-        // Espaços vazios antes do dia 1
+        // Nome do Mês no Topo
+        const mesesNome = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+        label.innerText = `${mesesNome[mes]} ${ano}`;
+
+        const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+        const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+
         for(let x = 0; x < primeiroDiaSemana; x++) {
             grid.innerHTML += `<div class="dia vazio"></div>`;
         }
 
-        // Dias do mês
         for(let i=1; i<=diasNoMes; i++) {
-            const d = `${ANO_ATUAL}-${(MES_ATUAL+1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+            const d = `${ano}-${(mes+1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
             const has = db[d] && db[d].length > 0;
-            grid.innerHTML += `<div class="dia ${has?'tem':''} ${selDate === d ? 'sel' : ''}" id="d-${d}" onclick="selectDate('${d}')">${i}</div>`;
+            const hoje = new Date();
+            const eHoje = hoje.getFullYear() === ano && hoje.getMonth() === mes && hoje.getDate() === i;
+            
+            grid.innerHTML += `
+                <div class="dia ${has?'tem':''} ${selDate === d ? 'sel' : ''}" 
+                     style="${eHoje && selDate !== d ? 'border: 2px solid var(--accent)' : ''}"
+                     onclick="selectDate('${d}')">${i}</div>`;
         }
+        lucide.createIcons();
     }
 
     function selectDate(d) {
         selDate = d;
-        renderCal(); // Atualiza seleção visual
+        renderCal();
         document.getElementById('painel').style.display = 'block';
+        document.getElementById('edit-badge').style.display = 'none';
         temp = []; editId = null;
         document.getElementById('in-titulo').value = "";
         renderPreview();
@@ -253,34 +286,34 @@
     }
 
     function addMusica() {
-        const n = document.getElementById('in-musica').value;
-        if(!n) return;
+    const n = document.getElementById('in-musica').value;
+    if(!n) return;
 
-        let yt = document.getElementById('in-yt').value;
-        let cf = document.getElementById('in-cf').value;
+    let yt = document.getElementById('in-yt').value;
+    let cf = document.getElementById('in-cf').value;
 
-        // Lógica de pesquisa automática (Estilo Cifra Club)
-        if(!yt) yt = `https://www.youtube.com/results?search_query=${encodeURIComponent(n + " louvor")}`;
-        if(!cf) cf = `https://www.cifraclub.com.br/?q=${encodeURIComponent(n)}`;
+    // Lógica corrigida: pesquisa apenas o nome da música, sem o sufixo "louvor"
+    if(!yt) yt = `https://www.youtube.com/results?search_query=${encodeURIComponent(n)}`;
+    if(!cf) cf = `https://www.cifraclub.com.br/?q=${encodeURIComponent(n)}`;
 
-        temp.push({ 
-            nome: n, 
-            tom: document.getElementById('in-tom').value,
-            yt: yt, 
-            cf: cf, 
-            foto: photo 
-        });
+    temp.push({ 
+        nome: n, 
+        tom: document.getElementById('in-tom').value,
+        yt: yt, 
+        cf: cf, 
+        foto: photo 
+    });
 
-        // Reset campos
-        document.getElementById('in-musica').value = "";
-        document.getElementById('in-tom').value = "";
-        document.getElementById('in-yt').value = "";
-        document.getElementById('in-cf').value = "";
-        document.getElementById('img-preview').style.display = 'none';
-        document.getElementById('icon-cam').style.display = 'block';
-        photo = ""; 
-        renderPreview();
-    }
+    // ... restante da função (limpeza de campos e render)
+    document.getElementById('in-musica').value = "";
+    document.getElementById('in-tom').value = "";
+    document.getElementById('in-yt').value = "";
+    document.getElementById('in-cf').value = "";
+    document.getElementById('img-preview').style.display = 'none';
+    document.getElementById('icon-cam').style.display = 'block';
+    photo = ""; 
+    renderPreview();
+}
 
     function renderPreview() {
         const div = document.getElementById('lista-preview');
@@ -303,7 +336,7 @@
         } else {
             db[selDate].push(esc);
         }
-        localStorage.setItem('m_divina_v9', JSON.stringify(db));
+        localStorage.setItem('m_divina_v10', JSON.stringify(db));
         showPage('view');
     }
 
@@ -345,7 +378,7 @@
     }
 
     function openPhoto(s) { document.getElementById('modal-img').src = s; document.getElementById('photo-modal').style.display = 'flex'; }
-    function del(d, i) { if(confirm("Excluir?")) { db[d].splice(i, 1); localStorage.setItem('m_divina_v9', JSON.stringify(db)); renderList(); } }
+    function del(d, i) { if(confirm("Excluir?")) { db[d].splice(i, 1); localStorage.setItem('m_divina_v10', JSON.stringify(db)); renderList(); } }
     
     function edit(d, i) {
         const esc = db[d][i]; showPage('admin'); selectDate(d);
@@ -355,6 +388,7 @@
     }
 
     lucide.createIcons();
+    renderCal();
 </script>
 
 </body>
