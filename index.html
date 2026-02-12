@@ -2,231 +2,330 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de escala</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cifras e Escalas Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --blue: #1e3a8a; --gold: #d4af37; --red: #991b1b;
-            --bg: #f8fafc; --white: #ffffff;
+            --primary: #2563eb; --accent: #d4af37; --bg: #ffffff;
+            --card: #f3f4f6; --text: #111827; --text-light: #6b7280;
+            --error: #ef4444; --success: #10b981; --border: rgba(0,0,0,0.08);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background-color: var(--bg); color: #333; }
+        .dark-mode {
+            --bg: #000000; --card: #1c1c1e; --text: #ffffff;
+            --text-light: #8e8e93; --primary: #0a84ff; --border: rgba(255,255,255,0.1);
+        }
 
-        /* Navegação */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text); transition: background 0.3s; padding-bottom: 90px; overflow-x: hidden; }
+
+        /* TELA DE ERRO */
+        #error-overlay {
+            display: none; position: fixed; inset: 0; background: var(--bg);
+            z-index: 5000; flex-direction: column; align-items: center; justify-content: center;
+            padding: 30px; text-align: center;
+        }
+        #error-overlay i { color: var(--error); margin-bottom: 20px; }
+
+        /* NAVEGAÇÃO */
         nav {
-            background: var(--blue);
-            padding: 1rem;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 3px solid var(--gold);
+            display: flex; justify-content: space-around; align-items: center;
+            position: fixed; bottom: 0; width: 100%; height: 75px;
+            background: rgba(var(--bg), 0.85); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border); z-index: 1000; padding-bottom: env(safe-area-inset-bottom);
         }
 
         nav button {
-            background: transparent; border: none; color: white;
-            font-weight: 600; cursor: pointer; padding: 5px 10px;
-            display: flex; align-items: center; gap: 8px;
-            transition: 0.3s;
+            background: none; border: none; color: var(--text-light);
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            cursor: pointer; font-size: 11px; font-weight: 600; transition: 0.3s; width: 33%;
         }
 
-        nav button:hover, nav button.active { color: var(--gold); transform: translateY(-2px); }
+        nav button.active { color: var(--primary); }
+        nav button i { width: 24px; height: 24px; }
 
-        .page { display: none; padding: 20px; max-width: 800px; margin: auto; animation: fadeIn 0.4s; }
+        /* CONTAINER */
+        .container { max-width: 600px; margin: auto; padding: 20px; }
+        .page { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .page.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        h1 { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; margin: 30px 0 10px; }
+        .search-bar { width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); margin-bottom: 20px; outline: none; }
 
-        header { text-align: center; padding: 40px 20px; background: white; margin-bottom: 20px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        header h1 { font-family: 'Cinzel', serif; color: var(--blue); }
+        /* CALENDÁRIO */
+        .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 25px; }
+        .dia { 
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center; 
+            border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 14px; 
+            background: var(--card); border: 1px solid var(--border); transition: 0.2s;
+        }
+        .dia.tem { color: var(--primary); border: 2px solid var(--primary); }
+        .dia.sel { background: var(--primary) !important; color: white !important; border-color: var(--primary); }
 
-        /* Cards e Estilos */
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .grid-calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
-        .dia { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
-        .dia.tem-escala { background: var(--blue); color: white; font-weight: bold; }
-        .dia.selecionado { border: 3px solid var(--gold); }
-
-        /* Inputs */
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-        .btn-acao { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
+        /* CARDS E INPUTS */
+        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border); }
+        input, select { 
+            width: 100%; padding: 15px; border-radius: 14px; margin-bottom: 12px;
+            border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; font-size: 16px;
+        }
         
-        /* Lista de Músicas na Visualização */
-        .escala-item { border-left: 5px solid var(--gold); padding: 15px; margin-bottom: 20px; position: relative; }
-        .musica-linha { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-        .yt-link { color: var(--red); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+        .row-musica { display: grid; grid-template-columns: 1fr 100px; gap: 10px; }
 
-        .btn-excluir { background: #fee2e2; color: var(--red); border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; float: right; }
+        .upload-area {
+            border: 2px dashed var(--border); border-radius: 16px; padding: 15px;
+            text-align: center; cursor: pointer; background: var(--bg); margin-bottom: 15px;
+        }
+        .preview-img { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; display: none; margin-top: 10px; }
+
+        .btn-primary { 
+            background: var(--primary); color: white; border: none; padding: 16px; 
+            border-radius: 16px; font-weight: 700; width: 100%; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        /* LISTA */
+        .item-musica { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--border); }
+        .tom-badge { background: var(--accent); color: white; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 5px; }
+        .actions { display: flex; gap: 15px; }
+        .actions a, .actions button { color: var(--text); background: none; border: none; cursor: pointer; }
+
+        #photo-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            z-index: 2000; align-items: center; justify-content: center; padding: 20px;
+        }
+        #photo-modal img { max-width: 100%; max-height: 90vh; border-radius: 10px; }
+        
+        .theme-btn { position: absolute; top: 25px; right: 20px; background: var(--card); border: 1px solid var(--border); padding: 8px; border-radius: 10px; color: var(--text); cursor: pointer; }
+        .badge-edit { background: var(--accent); color: white; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; display: none; margin-bottom: 10px; width: fit-content; }
     </style>
 </head>
 <body>
 
+<div id="error-overlay">
+    <i data-lucide="shield-alert" style="width: 64px; height: 64px;"></i>
+    <h2 style="margin: 15px 0">Link Inválido</h2>
+    <p id="error-desc" style="color: var(--text-light); margin-bottom: 25px;">O link fornecido não possui um formato seguro (https://) e não pode ser aberto.</p>
+    <button class="btn-primary" onclick="closeError()">Entendi e Vou Corrigir</button>
+</div>
+
+<div class="container">
+    <button class="theme-btn" onclick="toggleTheme()"><i data-lucide="moon" id="t-icon"></i></button>
+
+    <div id="home" class="page active">
+        <h1>Cifras e<br>Escalas</h1>
+        <p style="color: var(--text-light); margin-bottom: 30px;">O que vamos tocar hoje?</p>
+        <div class="card" onclick="showPage('admin')" style="cursor: pointer; border-left: 5px solid var(--primary);">
+            <h3 style="font-size:16px">Montar Repertório</h3>
+            <p style="font-size:13px; color:var(--text-light)">Toque para escolher a data.</p>
+        </div>
+    </div>
+
+    <div id="admin" class="page">
+        <h1>Calendário</h1>
+        <div class="grid-cal" id="calAdmin"></div>
+
+        <div id="painel" style="display: none;">
+            <div id="edit-badge" class="badge-edit">MODO EDIÇÃO</div>
+            <input type="text" id="in-titulo" placeholder="Título da Escala (Ex: Missa 19h)" style="font-weight: 700;">
+            
+            <div class="card">
+                <div class="row-musica">
+                    <input type="text" id="in-musica" placeholder="Nome da Música">
+                    <select id="in-tom">
+                        <option value="">Tom</option>
+                        <option>C</option><option>G</option><option>D</option><option>A</option>
+                        <option>E</option><option>F</option><option>B</option>
+                        <option>Am</option><option>Em</option><option>Dm</option>
+                    </select>
+                </div>
+                <input type="text" id="in-yt" placeholder="Link YouTube (https://...)">
+                <input type="text" id="in-cf" placeholder="Link Cifra Club (https://...)">
+                
+                <div class="upload-area" onclick="document.getElementById('file-in').click()">
+                    <i data-lucide="image" id="icon-cam"></i>
+                    <p id="upload-txt" style="font-size: 12px; font-weight: 600;">Anexar Foto da Cifra</p>
+                    <img id="img-preview" class="preview-img">
+                    <input type="file" id="file-in" accept="image/*" style="display:none" onchange="previewFile(this)">
+                </div>
+
+                <button class="btn-primary" onclick="addMusica()">Adicionar Música</button>
+            </div>
+
+            <div id="lista-preview"></div>
+            <button class="btn-primary" id="btn-save" style="display:none; background:var(--success); margin-top: 20px" onclick="save()">Salvar Escala</button>
+        </div>
+    </div>
+
+    <div id="view" class="page">
+        <h1>Escalas</h1>
+        <input type="text" class="search-bar" placeholder="Buscar música..." onkeyup="search(this.value)">
+        <div id="render-list"></div>
+    </div>
+</div>
+
+<div id="photo-modal" onclick="this.style.display='none'">
+    <img id="modal-img">
+</div>
+
 <nav>
-    <button onclick="showPage('home')" id="btn-home"><i data-lucide="home"></i> Início</button>
-    <button onclick="showPage('admin')" id="btn-admin"><i data-lucide="calendar-plus"></i> Montar</button>
-    <button onclick="showPage('view')" id="btn-view"><i data-lucide="list-music"></i> Ver Escalas</button>
+    <button onclick="showPage('home')" id="n-home" class="active"><i data-lucide="home"></i>Início</button>
+    <button onclick="showPage('admin')" id="n-admin"><i data-lucide="calendar"></i>Montar</button>
+    <button onclick="showPage('view')" id="n-view"><i data-lucide="music"></i>Escalas</button>
 </nav>
 
-<div id="home" class="page active">
-    <header>
-        <h1>Sistema de escala</h1>
-        <p>Maior organização em suas escalas</p>
-    </header>
-    <div class="card" id="proximo-evento">
-        <h2>Próxima Escala</h2>
-        <div id="resumo-home">Nenhuma escala cadastrada para os próximos dias.</div>
-    </div>
-</div>
-
-<div id="admin" class="page">
-    <div class="card">
-        <h2>1. Selecione o Dia</h2>
-        <div class="grid-calendario" id="gridAdmin"></div>
-    </div>
-
-    <div id="form-musicas" class="card" style="display: none;">
-        <h2 id="data-titulo">Montar Repertório</h2>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="m-nome" placeholder="Nome da música">
-            <input type="text" id="m-yt" placeholder="Link YouTube" style="width: 150px;">
-        </div>
-        <button class="btn-acao" onclick="adicionarMusica()" style="background: var(--gold);">+ Adicionar Música na Ordem</button>
-        
-        <div id="lista-previa" style="margin-top: 20px;"></div>
-        
-        <button class="btn-acao" onclick="salvarTudo()" style="display: none;" id="btn-salvar-final">
-            <i data-lucide="save"></i> FINALIZAR E SALVAR ESCALA
-        </button>
-    </div>
-</div>
-
-<div id="view" class="page">
-    <header>
-        <h2>Escalas Agendadas</h2>
-        <p>Confira abaixo o repertório de cada dia</p>
-    </header>
-    <div id="lista-escalas-completa"></div>
-</div>
-
 <script>
-    let escalas = JSON.parse(localStorage.getItem('dm_escalas')) || {};
-    let musicasTemporarias = [];
-    let dataSelecionada = "";
+    let db = JSON.parse(localStorage.getItem('m_divina_v8')) || {};
+    let temp = []; let selDate = ""; let photo = ""; let editId = null;
 
-    function showPage(pageId) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        document.getElementById('btn-' + pageId).classList.add('active');
-        
-        if(pageId === 'view') carregarEscalasPaginaView();
-        if(pageId === 'home') carregarHome();
-    }
-
-    function renderCalendarioAdmin() {
-        const grid = document.getElementById('gridAdmin');
-        grid.innerHTML = '';
-        for(let i=1; i<=28; i++) { // Simplificado Fev
-            const d = `2026-02-${i.toString().padStart(2, '0')}`;
-            const classe = escalas[d] ? 'dia tem-escala' : 'dia';
-            grid.innerHTML += `<div class="${classe}" id="dia-${d}" onclick="prepararDia('${d}')">${i}</div>`;
-        }
-    }
-
-    function prepararDia(d) {
-        dataSelecionada = d;
-        document.querySelectorAll('.dia').forEach(el => el.classList.remove('selecionado'));
-        document.getElementById('dia-'+d).classList.add('selecionado');
-        document.getElementById('form-musicas').style.display = 'block';
-        document.getElementById('data-titulo').innerText = "Repertório: " + d.split('-').reverse().join('/');
-        musicasTemporarias = escalas[d] || [];
-        atualizarListaPrevia();
-    }
-
-    function adicionarMusica() {
-        const nome = document.getElementById('m-nome').value;
-        const yt = document.getElementById('m-yt').value;
-        if(!nome) return alert("Digite o nome da música");
-        
-        musicasTemporarias.push({ nome, yt });
-        document.getElementById('m-nome').value = "";
-        document.getElementById('m-yt').value = "";
-        atualizarListaPrevia();
-    }
-
-    function atualizarListaPrevia() {
-        const lista = document.getElementById('lista-previa');
-        lista.innerHTML = musicasTemporarias.map((m, i) => `
-            <div class="musica-linha">
-                <span><strong>${i+1}.</strong> ${m.nome}</span>
-                <button onclick="musicasTemporarias.splice(${i},1); atualizarListaPrevia()" style="color:red; border:none; background:none; cursor:pointer">Remover</button>
-            </div>
-        `).join('');
-        document.getElementById('btn-salvar-final').style.display = musicasTemporarias.length > 0 ? 'block' : 'none';
-    }
-
-    function salvarTudo() {
-        escalas[dataSelecionada] = musicasTemporarias;
-        localStorage.setItem('dm_escalas', JSON.stringify(escalas));
-        alert("Escala salva com sucesso! Vá na aba 'Ver Escalas' para conferir.");
-        renderCalendarioAdmin();
-        showPage('view');
-    }
-
-    function carregarEscalasPaginaView() {
-        const container = document.getElementById('lista-escalas-completa');
-        const datas = Object.keys(escalas).sort();
-        
-        if(datas.length === 0) {
-            container.innerHTML = "<p style='text-align:center'>Nenhuma escala salva ainda.</p>";
-            return;
-        }
-
-        container.innerHTML = datas.map(d => `
-            <div class="card escala-item">
-                <button class="btn-excluir" onclick="excluirEscala('${d}')"><i data-lucide="trash"></i></button>
-                <h3 style="color:var(--blue)">📅 Dia ${d.split('-').reverse().join('/')}</h3>
-                <div style="margin-top:10px">
-                    ${escalas[d].map((m, i) => `
-                        <div class="musica-linha">
-                            <span>${i+1}. ${m.name || m.nome}</span>
-                            ${m.yt ? `<a href="${m.yt}" target="_blank" class="yt-link">PLAY YOUTUBE</a>` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `).join('');
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        document.getElementById('t-icon').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
         lucide.createIcons();
     }
 
-    function excluirEscala(d) {
-        if(confirm("Excluir esta escala?")) {
-            delete escalas[d];
-            localStorage.setItem('dm_escalas', JSON.stringify(escalas));
-            carregarEscalasPaginaView();
-            renderCalendarioAdmin();
+    // VALIDADOR DE LINKS (IMPEDE O ERRO DA IMAGEM)
+    function openLink(url) {
+        if (!url) return;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            window.open(url, '_blank');
+        } else {
+            document.getElementById('error-desc').innerHTML = `O link <b>"${url}"</b> não é válido.<br><br>Certifique-se de incluir o <b>https://</b> no início.`;
+            document.getElementById('error-overlay').style.display = 'flex';
         }
     }
 
-    function carregarHome() {
-        const datas = Object.keys(escalas).sort();
-        const resumo = document.getElementById('resumo-home');
-        if(datas.length > 0) {
-            const prox = datas[0];
-            resumo.innerHTML = `
-                <p><strong>Data:</strong> ${prox.split('-').reverse().join('/')}</p>
-                <p><strong>Músicas:</strong> ${escalas[prox].length} canções escaladas.</p>
-                <button class="btn-acao" onclick="showPage('view')">Ver Detalhes</button>
-            `;
+    function closeError() { document.getElementById('error-overlay').style.display = 'none'; }
+
+    function showPage(p) {
+        document.querySelectorAll('.page, nav button').forEach(el => el.classList.remove('active'));
+        document.getElementById(p).classList.add('active');
+        document.getElementById('n-'+p).classList.add('active');
+        if(p === 'admin') renderCal();
+        if(p === 'view') renderList();
+    }
+
+    function renderCal() {
+        const grid = document.getElementById('calAdmin'); grid.innerHTML = '';
+        for(let i=1; i<=31; i++) {
+            const d = `2026-02-${i.toString().padStart(2, '0')}`;
+            const has = db[d] && db[d].length > 0;
+            grid.innerHTML += `<div class="dia ${has?'tem':''}" id="d-${d}" onclick="selectDate('${d}')">${i}</div>`;
         }
     }
 
-    renderCalendarioAdmin();
+    function selectDate(d) {
+        selDate = d;
+        document.querySelectorAll('.dia').forEach(el => el.classList.remove('sel'));
+        document.getElementById('d-'+d).classList.add('sel');
+        document.getElementById('painel').style.display = 'block';
+        temp = []; editId = null;
+        document.getElementById('in-titulo').value = "";
+        renderPreview();
+    }
+
+    function previewFile(input) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            photo = e.target.result;
+            document.getElementById('img-preview').src = photo;
+            document.getElementById('img-preview').style.display = 'block';
+            document.getElementById('icon-cam').style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function addMusica() {
+        const n = document.getElementById('in-musica').value;
+        if(!n) return;
+        temp.push({ 
+            nome: n, 
+            tom: document.getElementById('in-tom').value,
+            yt: document.getElementById('in-yt').value, 
+            cf: document.getElementById('in-cf').value, 
+            foto: photo 
+        });
+        document.getElementById('in-musica').value = "";
+        document.getElementById('in-tom').value = "";
+        document.getElementById('in-yt').value = "";
+        document.getElementById('in-cf').value = "";
+        document.getElementById('img-preview').style.display = 'none';
+        document.getElementById('icon-cam').style.display = 'block';
+        photo = ""; renderPreview();
+    }
+
+    function renderPreview() {
+        const div = document.getElementById('lista-preview');
+        div.innerHTML = temp.map((m, i) => `
+            <div class="item-musica">
+                <span><b>${i+1}.</b> ${m.nome} ${m.tom ? `<span class="tom-badge">${m.tom}</span>` : ''}</span>
+                <button onclick="temp.splice(${i},1); renderPreview()" style="color:var(--error)"><i data-lucide="trash-2"></i></button>
+            </div>
+        `).join('');
+        document.getElementById('btn-save').style.display = temp.length > 0 ? 'block' : 'none';
+        lucide.createIcons();
+    }
+
+    function save() {
+        if(!db[selDate]) db[selDate] = [];
+        const esc = { id: editId || Date.now(), titulo: document.getElementById('in-titulo').value || "Missa", musicas: [...temp] };
+        if(editId) {
+            const idx = db[selDate].findIndex(e => e.id === editId);
+            db[selDate][idx] = esc;
+        } else {
+            db[selDate].push(esc);
+        }
+        localStorage.setItem('m_divina_v8', JSON.stringify(db));
+        showPage('view');
+    }
+
+    function renderList(f = "") {
+        const container = document.getElementById('render-list');
+        const dates = Object.keys(db).sort();
+        let html = "";
+        dates.forEach(d => {
+            db[d].forEach((esc, eIdx) => {
+                const match = esc.titulo.toLowerCase().includes(f.toLowerCase()) || esc.musicas.some(m => m.nome.toLowerCase().includes(f.toLowerCase()));
+                if(!match) return;
+                html += `
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:15px">
+                            <h3 style="font-size:16px; font-weight:800">${d.split('-').reverse().join('/')} - ${esc.titulo}</h3>
+                            <div style="display:flex; gap:10px">
+                                <button onclick="edit('${d}', ${eIdx})" style="color:var(--text-light)"><i data-lucide="edit-3" style="width:18px"></i></button>
+                                <button onclick="del('${d}', ${eIdx})" style="color:var(--error)"><i data-lucide="trash" style="width:18px"></i></button>
+                            </div>
+                        </div>
+                        ${esc.musicas.map(m => `
+                            <div class="item-musica">
+                                <span style="font-size:14px; font-weight:500">${m.nome} ${m.tom ? `<span class="tom-badge">${m.tom}</span>` : ''}</span>
+                                <div class="actions">
+                                    ${m.yt ? `<button onclick="openLink('${m.yt}')"><i data-lucide="youtube"></i></button>` : ''}
+                                    ${m.foto ? `<button onclick="openPhoto('${m.foto}')"><i data-lucide="camera"></i></button>` : ''}
+                                    <button onclick="openLink('${m.cf || 'https://www.cifraclub.com.br/?q='+m.nome}')"><i data-lucide="file-text"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+            });
+        });
+        container.innerHTML = html || "<p style='text-align:center; opacity:0.5'>Nenhuma escala encontrada.</p>";
+        lucide.createIcons();
+    }
+
+    function search(v) { renderList(v); }
+    function openPhoto(s) { document.getElementById('modal-img').src = s; document.getElementById('photo-modal').style.display = 'flex'; }
+    function del(d, i) { if(confirm("Excluir?")) { db[d].splice(i, 1); localStorage.setItem('m_divina_v8', JSON.stringify(db)); renderList(); } }
+    function edit(d, i) {
+        const esc = db[d][i]; showPage('admin'); selectDate(d);
+        document.getElementById('edit-badge').style.display = 'block';
+        document.getElementById('in-titulo').value = esc.titulo;
+        temp = [...esc.musicas]; editId = esc.id; renderPreview();
+    }
+
     lucide.createIcons();
 </script>
 
